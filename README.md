@@ -16,6 +16,13 @@ How to Run
    - Apply a KEDA `ScaledObject` (assuming `create_scaledobject()` is defined)
    - Perform a health check to ensure the deployment is active
 
+Produced the required no.of msgs without consumption
 ![alt text](image.png)
+
+Keda has increased the replicas of jupyter-notebook pod
+![alt text](image-1.png)
+
+Output of k descibe keda-scalerobject
+![alt text](image-2.png)
 
 Refer to USAGE_GUIDE.txt for more details about the project
