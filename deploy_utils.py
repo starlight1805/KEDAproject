@@ -3,17 +3,24 @@ import subprocess
 import yaml
 from jinja2 import Template
 
+# ANSI color codes for CLI
+GREEN = "\033[92m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
+
 def run_cmd(cmd, check=True):
+    """Run a shell command and return its output."""
     try:
         output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
         return output.decode().strip()
     except subprocess.CalledProcessError as e:
         if check:
-            raise RuntimeError(f"Command failed: {cmd}\n{e.output.decode().strip()}")
+            raise RuntimeError(f"{RED}Command failed: {cmd}\n{e.output.decode().strip()}{RESET}")
         return None
 
 def render_and_apply_yaml(template_path, parameters):
-    """Render Jinja2 template and apply with kubectl"""
+    """Render a Jinja2 YAML template and apply it using kubectl."""
     with open(template_path) as f:
         template = Template(f.read())
 
@@ -34,52 +41,66 @@ def create_jupyter_deployment(
     cpu_limit="500m",
     memory_limit="512Mi"
 ):
-    print("🚀 Creating Jupyter notebook deployment using YAML template...")
+    """
+    Deploy a Jupyter notebook using a templated Kubernetes YAML manifest.
+    Returns True on success, False on failure.
+    """
+    print(f"{CYAN}Creating Jupyter notebook deployment...{RESET}\n")
 
-    template_path = "manifests/jupyter_deployment.yaml"
+    try:
+        # Path to the Jinja2 YAML template
+        template_path = "manifests/jupyter_deployment.yaml"
 
-    parameters = {
-        "image": image,
-        "port": port,
-        "cpu_request": cpu_request,
-        "memory_request": memory_request,
-        "cpu_limit": cpu_limit,
-        "memory_limit": memory_limit
-    }
+        # Template parameters for substitution
+        parameters = {
+            "image": image,
+            "port": port,
+            "cpu_request": cpu_request,
+            "memory_request": memory_request,
+            "cpu_limit": cpu_limit,
+            "memory_limit": memory_limit
+        }
 
-    render_and_apply_yaml(template_path, parameters)
+        # Render and apply the deployment
+        render_and_apply_yaml(template_path, parameters)
 
-    print("✅ Jupyter notebook deployment created.")
-    
-    # Gather service info
-    print("🔍 Fetching service endpoint...")
-    svc_output = run_cmd("kubectl get svc jupyter-service -n keda -o json")
-    svc_info = yaml.safe_load(svc_output)
-    
-    node_port = svc_info["spec"]["ports"][0]["nodePort"]
-    cluster_ip = svc_info["spec"].get("clusterIP", "N/A")
+        print(f"{GREEN}Deployment created successfully.{RESET}\n")
 
-    summary = {
-        "deployment": "jupyter-notebook",
-        "service": "jupyter-service",
-        "port": port,
-        "nodePort": node_port,
-        "clusterIP": cluster_ip,
-        "image": image,
-        "resources": {
-            "requests": {
-                "cpu": cpu_request,
-                "memory": memory_request
-            },
-            "limits": {
-                "cpu": cpu_limit,
-                "memory": memory_limit
+        # Fetch service details
+        print(f"{CYAN}Fetching service endpoint...{RESET}")
+        svc_output = run_cmd("kubectl get svc jupyter-service -n keda -o json")
+        svc_info = yaml.safe_load(svc_output)
+
+        node_port = svc_info["spec"]["ports"][0]["nodePort"]
+        cluster_ip = svc_info["spec"].get("clusterIP", "N/A")
+
+        # Construct a summary details
+        summary = {
+            "deployment": "jupyter-notebook",
+            "service": "jupyter-service",
+            "port": port,
+            "nodePort": node_port,
+            "clusterIP": cluster_ip,
+            "image": image,
+            "resources": {
+                "requests": {
+                    "cpu": cpu_request,
+                    "memory": memory_request
+                },
+                "limits": {
+                    "cpu": cpu_limit,
+                    "memory": memory_limit
+                }
             }
         }
-    }
 
-    print("✅ Deployment Summary:")
-    for k, v in summary.items():
-        print(f"  {k}: {v}")
+        print(f"\n{GREEN}Deployment Summary:{RESET}")
+        for k, v in summary.items():
+            print(f"  {k}: {v}")
 
-    return summary
+        print()
+        return True
+
+    except Exception as e:
+        print(f"{RED}Failed to create Jupyter deployment: {e}{RESET}\n")
+        return False

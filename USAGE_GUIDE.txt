@@ -1,0 +1,114 @@
+
+KEDA + Jupyter Kubernetes Deployment Automation
+------------------------------------------------------------
+
+Scenario:
+---------
+
+- You are running a JupyterHub-like environment where:
+- Each Jupyter pod runs a notebook server that listens for events or tasks (e.g., ETL jobs, ML batch tasks, data visualization requests).
+- These tasks are pushed to a Kafka topic (jupyter-events) by upstream systems (e.g., a web app, a sensor system, or a data processing pipeline).
+- Each Jupyter pod acts as a consumer, processes tasks, and clears the lag.
+- When event volume spikes (causing Kafka lag), a single Jupyter notebook pod becomes a bottleneck. Users experience delays or queued jobs.
+
+Solution Using KEDA + Kafka Trigger:
+-------------------------------------
+
+- By using a ScaledObject:
+- KEDA watches the lag on the jupyter-events Kafka topic.
+- When lag exceeds 5 messages:
+- It scales the jupyter-notebook deployment from 1 to up to 4 replicas.
+- More notebooks means more tasks can be handled in parallel.
+- Once lag drops (tasks processed), the number of pods automatically scales down, optimizing resource use.
+
+Overview
+--------
+This tool automates the following tasks for Kubernetes environments:
+
+- Verifies cluster connection and configures kubeconfig if needed
+- Installs Helm if not available
+- Installs the KEDA operator via Helm
+- Deploys a Jupyter Notebook instance using a parameterized YAML template
+- Applies a KEDA `ScaledObject` for autoscaling
+- Verifies health status of deployed services
+
+The codebase is modular, with separate scripts for each responsibility, ensuring clarity, reuse, and easy maintenance.
+
+Prerequisites
+-------------
+Before running the script, ensure the following are installed:
+
+- Python 3.7+
+- `kubectl` (configured or accessible)
+- `helm` (will be installed by the script if missing)
+- Access to a running Kubernetes cluster (can be Minikube, AKS, GKE, etc.)
+- Proper user access rights to install Helm charts and deploy workloads
+- Python packages:
+  pip install jinja2 pyyaml
+
+File Structure
+--------------
+.
+├── main.py                      # Entry point to orchestrate all tasks
+├── cluster_utils.py            # Handles K8s connection, Helm, and KEDA installation
+├── deploy_utils.py             # Creates Jupyter deployment from a YAML template
+├── keda_utils.py               # Defines KEDA ScaledObject
+├── health_check.py             # Checks health of the Jupyter deployment
+├── manifests/
+│   └── jupyter_deployment.yaml # Deploys jupyter notebook with service
+│   └── kafka_deployment.yaml # Deploys kafka
+│   └── scaledobject.yaml # Deploys KEDA hpa object
+└── README.txt                  # This usage guide
+
+How to Run
+----------
+1. Clone the repository or copy the files into a working directory.
+
+2. Run the main script:
+
+   python main.py
+
+3. During execution, if not connected to a Kubernetes cluster, the script will prompt you to enter the path to your kubeconfig file.
+
+4. The script will:
+   - Set up KEDA in the `keda` namespace
+   - Deploy a Jupyter notebook as a Kubernetes `Deployment` + `Service`
+   - Apply a KEDA `ScaledObject` (assuming `create_scaledobject()` is defined)
+   - Perform a health check to ensure the deployment is active
+
+Customizing the Deployment
+--------------------------
+You can modify the Jupyter deployment settings in `create_jupyter_deployment()`:
+
+- Container image (`image`)
+- Port (`port`)
+- Resource requests and limits (`cpu_request`, `memory_limit`, etc.)
+
+Or update the template file:
+
+  manifests/jupyter_deployment.yaml
+
+Which uses Jinja2 templating to allow dynamic values.
+
+Health Check
+------------
+The script will check the deployment status using:
+
+  kubectl get deployment jupyter-notebook -n keda
+
+You’ll see a message confirming if the pod is healthy and running with available replicas.
+
+Security Notes
+--------------
+This is a dev/staging-level script. For production, consider:
+
+- Creating and using a minimal ServiceAccount with Role/RoleBinding
+- Defining resource quotas and limits in namespaces
+- Applying NetworkPolicies to restrict access
+- Managing secrets using Kubernetes `Secret` objects or external vaults
+
+Status Codes
+------------
+Each step (connect, install, deploy, health) returns a `True`/`False` to control whether to continue or abort the flow.
+
+You can extend or integrate this with CI pipelines.

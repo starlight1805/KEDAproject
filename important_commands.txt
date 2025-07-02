@@ -1,0 +1,58 @@
+
+important_commands.txt — Kafka & Python Integration Guide
+---------------------------------------------------------
+
+📦 Python Prerequisites
+------------------------
+Ensure you have the required Python packages installed for Jinja2 templating and YAML parsing:
+
+    pip3 install pyyaml
+    pip3 install jinja2
+
+
+🧪 Kafka Post-Deployment Commands
+---------------------------------
+
+🔹 Step into the Kafka pod shell (assuming you're using Bitnami or a similar Helm chart):
+    kubectl exec -it pod/kafka-<pod-name> -n kafka -- bash
+
+🔹 Create a Kafka topic (used for Jupyter events):
+    kafka-topics.sh --create         --topic jupyter-events         --bootstrap-server kafka.kafka.svc.cluster.local:9092
+
+🔹 List all topics to confirm creation:
+    kafka-topics.sh --list         --bootstrap-server kafka.kafka.svc.cluster.local:9092
+
+
+📥 Consuming Messages from Kafka
+---------------------------------
+Use this command to consume messages from the topic `jupyter-events` using a defined consumer group:
+
+    kafka-console-consumer.sh         --topic jupyter-events         --bootstrap-server kafka.kafka.svc.cluster.local:9092         --group keda-group
+
+🔁 Notes:
+- `--group keda-group` will maintain offset tracking for autoscaling via KEDA.
+- This must match the consumer group configured in your ScaledObject.
+
+
+📤 Producing Messages to Kafka
+------------------------------
+Use this command to send (produce) messages to the Kafka topic:
+
+    kafka-console-producer.sh         --broker-list kafka.kafka.svc.cluster.local:9092         --topic jupyter-events
+
+
+
+📊 Monitor Kafka Consumer Group Lag
+-----------------------------------
+Check the lag and offset information for the `keda-group` consumer group:
+
+    kafka-consumer-groups.sh         --bootstrap-server kafka.kafka.svc.cluster.local:9092         --describe         --group keda-group
+
+🔁 Notes:
+- This is critical for KEDA autoscaling — lag is the primary trigger.
+
+📌 Tips
+-------
+- Always ensure your Kafka topic exists **before** deploying the `ScaledObject`.
+- Use consistent consumer group names between Kafka CLI and KEDA config.
+
