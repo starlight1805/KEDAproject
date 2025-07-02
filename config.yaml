@@ -1,0 +1,15 @@
+deployment:
+  name: jupyter-notebook
+  image: jupyter/base-notebook:latest
+  cpu: 200m
+  memory: 512Mi
+  port: 8888
+  replicas: 1
+
+keda:
+  broker: kafka.default.svc.cluster.local:9092
+  topic: iot-data-stream
+  consumerGroup: jupyter-consumer
+  lagThreshold: 5
+  minReplicaCount: 1
+  maxReplicaCount: 5
