@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jupyter-notebook
+  namespace: keda
 spec:
   replicas: 1
   selector:
@@ -13,27 +14,28 @@ spec:
         app: jupyter-notebook
     spec:
       containers:
-        - name: notebook
-          image: jupyter/base-notebook:latest
+        - name: jupyter
+          image: "{{ image }}"
           ports:
-            - containerPort: 8888
+            - containerPort: {{ port }}
           resources:
             requests:
-              cpu: "200m"
-              memory: "512Mi"
+              cpu: "{{ cpu_request }}"
+              memory: "{{ memory_request }}"
             limits:
-              cpu: "1"
-              memory: "1Gi"
-
+              cpu: "{{ cpu_limit }}"
+              memory: "{{ memory_limit }}"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: jupyter-service
+  namespace: keda
 spec:
-  type: NodePort  # or ClusterIP/LoadBalancer
   selector:
     app: jupyter-notebook
   ports:
-    - port: 8888
-      targetPort: 8888
+    - protocol: TCP
+      port: {{ port }}
+      targetPort: {{ port }}
+  type: NodePort

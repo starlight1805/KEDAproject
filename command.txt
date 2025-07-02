@@ -1,0 +1,23 @@
+pip install pyyaml
+pip3 install jinja1
+
+deploy kafka
+kubectl exec -it pod/kafka-<pod> -n kafka -- bash
+kafka-topics.sh --create --topic jupyter-events --bootstrap-server localhost:9092
+
+
+kafka-topics.sh --list --bootstrap-server localhost:9092
+
+
+kafka-console-consumer.sh \
+  --topic jupyter-events \
+  --bootstrap-server localhost:9092 \
+  --group keda-group
+
+To check consumer group and lag
+kafka-consumer-groups.sh \
+  --bootstrap-server localhost:9092 \
+  --describe \
+  --group keda-group
+
+

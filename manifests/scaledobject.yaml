@@ -1,16 +1,17 @@
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: jupyter-kafka-scaler
+  name: jupyter-scaler
+  namespace: keda
 spec:
   scaleTargetRef:
     name: jupyter-notebook
   minReplicaCount: 1
-  maxReplicaCount: 5
+  maxReplicaCount: 4
   triggers:
     - type: kafka
       metadata:
-        bootstrapServers: kafka.default.svc.cluster.local:9092
-        topic: iot-data-stream
-        consumerGroup: jupyter-consumer
+        bootstrapServers: kafka.kafka.svc.cluster.local:9092
+        topic: jupyter-events
+        consumerGroup: keda-group
         lagThreshold: "5"

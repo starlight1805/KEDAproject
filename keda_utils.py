@@ -1,39 +1,35 @@
-import yaml
+import subprocess
+import os
 
 def create_scaledobject():
-    print("⚙️ Creating KEDA ScaledObject...")
-    with open("config.yaml") as f:
-        cfg = yaml.safe_load(f)
-        keda = cfg["keda"]
+    manifest_path = os.path.join("manifests", "scaledobject.yaml")
+    scaledobject_name = "jupyter-scaler"
 
-    scaledobject = {
-        "apiVersion": "keda.sh/v1alpha1",
-        "kind": "ScaledObject",
-        "metadata": {"name": "jupyter-kafka-scaler"},
-        "spec": {
-            "scaleTargetRef": {"name": cfg["deployment"]["name"]},
-            "minReplicaCount": keda["minReplicaCount"],
-            "maxReplicaCount": keda["maxReplicaCount"],
-            "triggers": [{
-                "type": "kafka",
-                "metadata": {
-                    "bootstrapServers": keda["broker"],
-                    "topic": keda["topic"],
-                    "consumerGroup": keda["consumerGroup"],
-                    "lagThreshold": str(keda["lagThreshold"])
-                }
-            }]
-        }
-    }
+    if not os.path.exists(manifest_path):
+        print(f"❌ Manifest file not found at {manifest_path}")
+        return {"status": "error", "message": "Manifest file missing"}
 
-    with open("scaledobject.yaml", "w") as f:
-        yaml.dump(scaledobject, f)
+    try:
+        print(f"📦 Applying ScaledObject from: {manifest_path} ...")
+        apply_proc = subprocess.run(
+            ["kubectl", "apply", "-f", manifest_path, "-n", "keda"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True
+        )
+        print(f"✅ Applied:\n{apply_proc.stdout.decode().strip()}")
 
-    run("kubectl apply -f scaledobject.yaml")
-    print("✅ ScaledObject created.")
+        print(f"🔍 Verifying ScaledObject `{scaledobject_name}` ...")
+        get_proc = subprocess.run(
+            ["kubectl", "get", "scaledobject", scaledobject_name, "-n", "keda"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True
+        )
+        print(f"✅ ScaledObject exists:\n{get_proc.stdout.decode().strip()}")
 
-def run(cmd):
-    import subprocess
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"Failed: {cmd}\n{result.stderr}")
+        return {"status": "success", "message": "ScaledObject applied and verified in keda namespace"}
+
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error:\n{e.stderr.decode().strip()}")
+        return {"status": "error", "message": e.stderr.decode().strip()}
