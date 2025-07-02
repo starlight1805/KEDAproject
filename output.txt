@@ -1,0 +1,67 @@
+vivekvarkala@Viveks-MacBook-Air KEDAproject % python3 main.py 
+🔧 Step 1: Connect to Kubernetes cluster
+
+========== Starting Cluster Setup ==========
+
+Verifying Kubernetes cluster connectivity...
+Connected to Kubernetes cluster.
+
+Checking Helm installation...
+Helm is already installed: v3.18.3+g6838ebc
+
+Installing KEDA via Helm...
+Waiting for KEDA operator pod to be Running...
+
+KEDA operator is running.
+
+Verifying tools and cluster status...
+
+Current Kubernetes context:
+  Context: docker-desktop
+
+Cluster Nodes:
+NAME             STATUS   ROLES           AGE    VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE         KERNEL-VERSION     CONTAINER-RUNTIME
+docker-desktop   Ready    control-plane   111m   v1.32.2   192.168.65.3   <none>        Docker Desktop   6.10.14-linuxkit   docker://28.2.2
+
+Helm Releases:
+NAME    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART           APP VERSION
+keda    keda            5               2025-07-03 00:02:32.123558 +0530 IST    deployed        keda-2.17.2     2.17.2
+
+KEDA Status:
+KEDA is installed and its pods are:
+NAME                                              READY   STATUS    RESTARTS   AGE
+jupyter-notebook-564f9d59d6-7vskk                 1/1     Running   0          93m
+keda-admission-webhooks-7fc99cdd4d-tz47s          1/1     Running   0          93m
+keda-operator-54ffcbbfd6-dkzqq                    1/1     Running   0          93m
+keda-operator-metrics-apiserver-c5b6f8b88-4lr5s   1/1     Running   0          93m
+
+📦 Step 2: Deploy Jupyter Notebook
+Creating Jupyter notebook deployment...
+
+Deployment created successfully.
+
+Fetching service endpoint...
+
+Deployment Summary:
+  deployment: jupyter-notebook
+  service: jupyter-service
+  port: 8888
+  nodePort: 32766
+  clusterIP: 10.107.141.170
+  image: jupyter/base-notebook:latest
+  resources: {'requests': {'cpu': '100m', 'memory': '128Mi'}, 'limits': {'cpu': '500m', 'memory': '512Mi'}}
+
+⚙️ Step 3: Create KEDA ScaledObject
+📦 Applying ScaledObject from: manifests/scaledobject.yaml ...
+✅ Applied:
+scaledobject.keda.sh/jupyter-scaler unchanged
+🔍 Verifying ScaledObject `jupyter-scaler` ...
+✅ ScaledObject exists:
+NAME             SCALETARGETKIND      SCALETARGETNAME    MIN   MAX   READY   ACTIVE   FALLBACK   PAUSED    TRIGGERS   AUTHENTICATIONS   AGE
+jupyter-scaler   apps/v1.Deployment   jupyter-notebook   1     4     False   False    False      Unknown   kafka                        93m
+🩺 Step 4: Run Health Check
+Checking health of deployment: jupyter-notebook
+
+✔ Deployment 'jupyter-notebook' is healthy with 1 replica(s) available.
+
+vivekvarkala@Viveks-MacBook-Air KEDAproject % 

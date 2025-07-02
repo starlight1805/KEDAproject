@@ -16,5 +16,6 @@ How to Run
    - Apply a KEDA `ScaledObject` (assuming `create_scaledobject()` is defined)
    - Perform a health check to ensure the deployment is active
 
+![alt text](image.png)
 
 Refer to USAGE_GUIDE.txt for more details about the project
