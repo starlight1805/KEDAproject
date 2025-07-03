@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-auth
+  namespace: kafka
+type: Opaque
+data:
+  sasl: cGxhaW46bXl1c2VyOm15cGFzcw==  # base64 of 'plain:myuser:mypass'
+
+---
+
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: kafka-trigger-auth
+  namespace: kafka
+spec:
+  secretTargetRef:
+    - parameter: sasl
+      name: kafka-auth
+      key: sasl
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: kafka-scaledobject
+spec:
+  scaleTargetRef:
+    name: kafka-consumer
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.kafka.svc.cluster.local:9092
+        topic: jupyter-events
+        consumerGroup: keda-group
+        authenticationMode: sasl
+        saslMechanism: plain
+      authenticationRef:
+        name: kafka-trigger-auth
